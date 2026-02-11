@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">WeightTrackingEmmanuelRivera</string>
+    <string name="title">Weight Tracker</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
 </resources>
