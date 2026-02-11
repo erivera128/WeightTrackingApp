@@ -58,7 +58,7 @@
 
     <Button
         android:id="@+id/loginButton"
-        android:layout_width="98dp"
+        android:layout_width="100dp"
         android:layout_height="48dp"
         android:text="@string/login"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -71,7 +71,7 @@
     <Button
         android:id="@+id/signUpButton"
         android:layout_width="100dp"
-        android:layout_height="47dp"
+        android:layout_height="48dp"
         android:text="@string/sign_up"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
