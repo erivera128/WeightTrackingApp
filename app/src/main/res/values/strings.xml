@@ -5,4 +5,8 @@
     <string name="password">Password</string>
     <string name="login">Login</string>
     <string name="sign_up">Sign Up</string>
+    <string name="add_new_weight_or_goal">Add new weight or goal</string>
+    <string name="new_weight">Enter New Weight</string>
+    <string name="enter_weight">Enter weight (lbs)</string>
+    <string name="save">Save</string>
 </resources>

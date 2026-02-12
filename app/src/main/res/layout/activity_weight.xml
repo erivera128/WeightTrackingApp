@@ -7,4 +7,64 @@
     android:layout_height="match_parent"
     tools:context=".WeightActivity">
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/weightEntries"
+        android:layout_width="410dp"
+        android:layout_height="332dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.754" />
+
+    <TextView
+        android:id="@+id/currentWeightGoal"
+        android:layout_width="140dp"
+        android:layout_height="85dp"
+        android:layout_marginBottom="216dp"
+        android:text="currentGoalWeight /n Goal Weight"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.059"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.395" />
+
+    <TextView
+        android:id="@+id/welcome"
+        android:layout_width="171dp"
+        android:layout_height="68dp"
+        android:layout_marginTop="40dp"
+        android:text="Welcome User"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/currentWeight"
+        android:layout_width="140dp"
+        android:layout_height="85dp"
+        android:text="currentweight /n Current Weight"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.739"
+        app:layout_constraintStart_toEndOf="@+id/currentWeightGoal"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.263" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/floatingActionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:clickable="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.915"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.976"
+        app:srcCompat="@android:drawable/ic_input_add"
+        android:contentDescription="@string/add_new_weight_or_goal"/>
 </androidx.constraintlayout.widget.ConstraintLayout>
