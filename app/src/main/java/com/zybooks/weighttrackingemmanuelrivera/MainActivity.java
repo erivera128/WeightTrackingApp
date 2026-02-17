@@ -1,6 +1,7 @@
 package com.zybooks.weighttrackingemmanuelrivera;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
@@ -39,6 +40,15 @@ public class MainActivity extends AppCompatActivity {
         dbHelper = new WeightTrackerDB(this);
 
         database = dbHelper.getWritableDatabase();
+
+        Button loginButton = findViewById(R.id.loginButton);
+
+        loginButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, WeightActivity.class);
+            startActivity(intent);
+
+            finish();
+        });
     }
 
     @Override
