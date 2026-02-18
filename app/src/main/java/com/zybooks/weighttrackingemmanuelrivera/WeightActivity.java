@@ -53,13 +53,7 @@ public class WeightActivity extends AppCompatActivity {
 
         new AlertDialog.Builder(this)
                 .setTitle(R.string.add_new_weight_or_goal)
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        showEntryBottomSheet(true);
-                    } else {
-                        showEntryBottomSheet(false);
-                    }
-                })
+                .setItems(options, (dialog, which) -> showEntryBottomSheet(which == 0))
                 .show();
     }
 
