@@ -9,4 +9,14 @@
     <string name="new_weight">Enter New Weight</string>
     <string name="enter_weight">Enter weight (lbs)</string>
     <string name="save">Save</string>
+    <string name="new_goal">Enter New Goal</string>
+    <string name="enter_goal">Enter goal (lbs)</string>
+    <string name="add_weight_option">Add Weight</string>
+    <string name="add_goal_option">Add Goal</string>
+    <string name="weight_saved">Weight saved</string>
+    <string name="goal_saved">Goal saved</string>
+    <string name="save_failed">Unable to save</string>
+    <string name="enter_valid_number">Enter a valid number</string>
+    <string name="user_not_found">Please log in again.</string>
+    <string name="welcome_user">Welcome %1$s!</string>
 </resources>

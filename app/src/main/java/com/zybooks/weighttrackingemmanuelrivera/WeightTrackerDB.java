@@ -1,6 +1,8 @@
 package com.zybooks.weighttrackingemmanuelrivera;
 
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
@@ -46,5 +48,54 @@ public class WeightTrackerDB extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS goals");
         onCreate(db);
 
+    }
+
+    public long createUser(String username, String passwordHash) {
+        SQLiteDatabase db = getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("username", username);
+        values.put("password", passwordHash);
+
+        return db.insert("users", null, values);
+    }
+
+    public boolean verifyUser(String username, String passwordHash) {
+        SQLiteDatabase db = getReadableDatabase();
+
+        try (Cursor cursor = db.rawQuery(
+                "SELECT userId FROM users WHERE username = ? AND password = ?",
+                new String[]{username, passwordHash})) {
+            return cursor.moveToFirst();
+        }
+    }
+
+    public long getUserId(String username) {
+        SQLiteDatabase db = getReadableDatabase();
+
+        try (Cursor cursor = db.rawQuery(
+                "SELECT userId FROM users WHERE username = ?",
+                new String[]{username})) {
+            if (cursor.moveToFirst()) {
+                return cursor.getLong(0);
+            }
+            return -1;
+        }
+    }
+
+    public long insertWeight(long userId, float weight) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("weight", weight);
+        values.put("userId", userId);
+        return db.insert("weights", null, values);
+    }
+
+    public long insertGoal(long userId, float goal) {
+        SQLiteDatabase db = getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("goal", goal);
+        values.put("userId", userId);
+        return db.insert("goals", null, values);
     }
 }
