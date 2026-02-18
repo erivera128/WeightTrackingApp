@@ -1,26 +1,40 @@
 package com.zybooks.weighttrackingemmanuelrivera;
 
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public class WeightActivity extends AppCompatActivity {
 
     private WeightTrackerDB dbHelper;
     private long userId;
+    private static final int RECENT_WEIGHT_LIMIT = 10;
+
+    private TextView currentWeightView;
+    private TextView currentWeightGoalView;
+    private WeightAdapter weightAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,12 +51,57 @@ public class WeightActivity extends AppCompatActivity {
         String username = getIntent().getStringExtra("username");
 
         TextView welcome = findViewById(R.id.welcome);
+        currentWeightView = findViewById(R.id.currentWeight);
+        currentWeightGoalView = findViewById(R.id.currentWeightGoal);
         if (username != null && !username.isEmpty()) {
             welcome.setText(getString(R.string.welcome_user, username));
         }
 
+        setupRecyclerView();
+        refreshDashboard();
+
         FloatingActionButton fab = findViewById(R.id.floatingActionButton);
         fab.setOnClickListener(v -> showAddOptions());
+    }
+
+    private void setupRecyclerView() {
+        RecyclerView weightEntries = findViewById(R.id.weightEntries);
+        weightAdapter = new WeightAdapter();
+        weightEntries.setLayoutManager(new LinearLayoutManager(this));
+        weightEntries.setAdapter(weightAdapter);
+    }
+
+    private void refreshDashboard() {
+        if (userId < 0) {
+            currentWeightView.setText(R.string.current_weight_missing);
+            currentWeightGoalView.setText(R.string.current_goal_missing);
+            weightAdapter.setEntries(new ArrayList<>());
+            return;
+        }
+
+        Float latestWeight = dbHelper.latestWeight(userId);
+        Float latestGoal = dbHelper.getLatestGoal(userId);
+
+        if (latestWeight == null) {
+            currentWeightView.setText(R.string.current_weight_missing);
+        } else {
+            currentWeightView.setText(getString(
+                    R.string.current_weight_value,
+                    String.format(Locale.US, "%.1f", latestWeight)
+            ));
+        }
+
+        if (latestGoal == null) {
+            currentWeightGoalView.setText(R.string.current_goal_missing);
+        } else {
+            currentWeightGoalView.setText(getString(
+                    R.string.current_goal_value,
+                    String.format(Locale.US, "%.1f", latestGoal)
+            ));
+        }
+
+        List<WeightTrackerDB.WeightEntry> recentWeights = dbHelper.getRecentWeight(userId, RECENT_WEIGHT_LIMIT);
+        weightAdapter.setEntries(recentWeights);
     }
 
     private void showAddOptions() {
@@ -100,6 +159,7 @@ public class WeightActivity extends AppCompatActivity {
                             isWeight ? R.string.weight_saved : R.string.goal_saved,
                             Toast.LENGTH_SHORT
                     ).show();
+                    refreshDashboard();
                     bottomSheet.dismiss();
                 }
             } catch (NumberFormatException e) {
@@ -114,5 +174,47 @@ public class WeightActivity extends AppCompatActivity {
     protected void onDestroy() {
         dbHelper.close();
         super.onDestroy();
+    }
+
+    private static class WeightAdapter extends RecyclerView.Adapter<WeightAdapter.WeightViewHolder> implements com.zybooks.weighttrackingemmanuelrivera.WeightAdapter {
+
+        private final List<WeightTrackerDB.WeightEntry> entries = new ArrayList<>();
+
+        public void setEntries(List<WeightTrackerDB.WeightEntry> newEntries) {
+            entries.clear();
+            entries.addAll(newEntries);
+            notifyDataSetChanged();
+        }
+
+        @NonNull
+        @Override
+        public WeightViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View itemView = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_weight, parent, false);
+            return new WeightViewHolder(itemView);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull WeightViewHolder holder, int position) {
+            WeightTrackerDB.WeightEntry entry = entries.get(position);
+            holder.weightValue.setText(String.format(Locale.US, "%.1f lbs", entry.getValue()));
+            holder.weightDate.setText(entry.getDate());
+        }
+
+        @Override
+        public int getItemCount() {
+            return entries.size();
+        }
+
+        static class WeightViewHolder extends RecyclerView.ViewHolder {
+            private final TextView weightValue;
+            private final TextView weightDate;
+
+            public WeightViewHolder(@NonNull View itemView) {
+                super(itemView);
+                weightValue = itemView.findViewById(R.id.weightValue);
+                weightDate = itemView.findViewById(R.id.weightDate);
+            }
+        }
     }
 }

@@ -19,4 +19,9 @@
     <string name="enter_valid_number">Enter a valid number</string>
     <string name="user_not_found">Please log in again.</string>
     <string name="welcome_user">Welcome %1$s!</string>
+    <string name="welcome_user_default">Welcome User</string>
+    <string name="current_weight_value">%1$s lbs Current Weight</string>
+    <string name="current_goal_value">%1$s lbs Goal Weight</string>
+    <string name="current_weight_missing">No current weight</string>
+    <string name="current_goal_missing">No goal set</string>
 </resources>

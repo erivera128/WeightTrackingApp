@@ -6,6 +6,9 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class WeightTrackerDB extends SQLiteOpenHelper {
 
     private static final String WEIGHT_DATABASE = "weight_tracker.db";
@@ -97,5 +100,62 @@ public class WeightTrackerDB extends SQLiteOpenHelper {
         values.put("goal", goal);
         values.put("userId", userId);
         return db.insert("goals", null, values);
+    }
+
+    public Float latestWeight(long userId) {
+        SQLiteDatabase db = getReadableDatabase();
+        try (Cursor cursor = db.rawQuery(
+                "SELECT weight FROM weights WHERE userId = ? ORDER BY date DESC, weightId DESC LIMIT 1",
+                new String[]{String.valueOf(userId)})) {
+            if (cursor.moveToFirst()) {
+                return cursor.getFloat(0);
+            }
+            return null;
+        }
+    }
+
+    public Float getLatestGoal(long userId) {
+        SQLiteDatabase db = getReadableDatabase();
+        try (Cursor cursor = db.rawQuery(
+                "SELECT goal FROM goals WHERE userId = ? ORDER BY goalId DESC LIMIT 1",
+                new String[]{String.valueOf(userId)})) {
+            if (cursor.moveToFirst()) {
+                return cursor.getFloat(0);
+            }
+            return null;
+        }
+    }
+
+    public List<WeightEntry> getRecentWeight(long userId, int limit) {
+        SQLiteDatabase db = getReadableDatabase();
+        List<WeightEntry> entries = new ArrayList<>();
+
+        try (Cursor cursor = db.rawQuery(
+                "SELECT weight, date FROM weights WHERE userId = ? ORDER BY date DESC, weightId DESC LIMIT ?",
+                new String[]{String.valueOf(userId),
+                String.valueOf(limit)})) {
+                    while (cursor.moveToNext()) {
+                        entries.add(new WeightEntry(cursor.getFloat(0), cursor.getString(1)));
+                    }
+
+        return entries;
+        }
+    }
+
+    public static class WeightEntry {
+        private final float value;
+        private final String date;
+
+        public WeightEntry(float value, String date) {
+            this.value = value;
+            this.date = date;
+        }
+
+        public float getValue() {
+            return value;
+        }
+        public String getDate(){
+            return date;
+        }
     }
 }
