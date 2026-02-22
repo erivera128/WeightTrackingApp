@@ -1,6 +1,9 @@
 package com.zybooks.weighttrackingemmanuelrivera;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.telephony.SmsManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,11 +16,14 @@ import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import android.telephony.SmsManager;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -57,10 +63,20 @@ public class WeightActivity extends AppCompatActivity {
             welcome.setText(getString(R.string.welcome_user, username));
         }
 
+        FloatingActionButton fab = findViewById(R.id.floatingActionButton);
+
+        Button smsSubmitButton = findViewById(R.id.cellSubmit);
+        smsSubmitButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onButtonClick(v);
+            }
+        });
+
         setupRecyclerView();
         refreshDashboard();
 
-        FloatingActionButton fab = findViewById(R.id.floatingActionButton);
+
         fab.setOnClickListener(v -> showAddOptions());
     }
 
@@ -217,4 +233,36 @@ public class WeightActivity extends AppCompatActivity {
             }
         }
     }
+
+    public void onButtonClick(View v) {
+
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, 0);
+        } else {
+            sendSMS();
+        }
+    }
+
+    private void sendSMS() {
+        EditText phoneText = findViewById(R.id.editTextText2);
+        String phoneNumber = phoneText.getText().toString().trim();
+
+        if (phoneNumber.isEmpty()) {
+            Toast.makeText(this, "Please enter a phone number", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String message = "Goal reached! SMS sent to: " + phoneNumber;
+
+        try {
+            SmsManager smsManager = this.getSystemService(SmsManager.class);
+            smsManager.sendTextMessage(phoneNumber, null, message, null, null);
+
+            Toast.makeText(this, "SMS Sent!", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+        }
+    }
+
 }

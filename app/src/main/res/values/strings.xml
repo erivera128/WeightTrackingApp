@@ -24,4 +24,8 @@
     <string name="current_goal_value">%1$s lbs Goal Weight</string>
     <string name="current_weight_missing">No current weight</string>
     <string name="current_goal_missing">No goal set</string>
+    <string name="enter_cell">Enter Cell# for Weight Goal reached notification!</string>
+    <string name="number">Name</string>
+    <string name="number_example">9999999999</string>
+    <string name="submit">Submit</string>
 </resources>
