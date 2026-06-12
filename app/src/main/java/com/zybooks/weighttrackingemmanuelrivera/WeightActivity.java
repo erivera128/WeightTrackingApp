@@ -3,7 +3,6 @@ package com.zybooks.weighttrackingemmanuelrivera;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.telephony.SmsManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,21 +11,18 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import android.telephony.SmsManager;
 
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.zybooks.weighttrackingemmanuelrivera.viewmodel.WeightViewModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,10 +30,8 @@ import java.util.Locale;
 
 public class WeightActivity extends AppCompatActivity {
 
-    private WeightTrackerDB dbHelper;
+    private WeightViewModel weightViewModel;
     private long userId;
-    private static final int RECENT_WEIGHT_LIMIT = 10;
-
     private TextView currentWeightView;
     private TextView currentWeightGoalView;
     private WeightAdapter weightAdapter;
@@ -45,37 +39,29 @@ public class WeightActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_weight);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
-        dbHelper = new WeightTrackerDB(this);
+
+        weightViewModel = new ViewModelProvider(this).get(WeightViewModel.class);
+
         userId = getIntent().getLongExtra("userId", -1);
         String username = getIntent().getStringExtra("username");
 
         TextView welcome = findViewById(R.id.welcome);
         currentWeightView = findViewById(R.id.currentWeight);
         currentWeightGoalView = findViewById(R.id.currentWeightGoal);
+
         if (username != null && !username.isEmpty()) {
             welcome.setText(getString(R.string.welcome_user, username));
         }
 
         FloatingActionButton fab = findViewById(R.id.floatingActionButton);
-
         Button smsSubmitButton = findViewById(R.id.cellSubmit);
-        smsSubmitButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onButtonClick(v);
-            }
-        });
+        smsSubmitButton.setOnClickListener(v -> onButtonClick(v));
 
         setupRecyclerView();
-        refreshDashboard();
+        setupObservers();
 
+        weightViewModel.loadDashboardData(userId);
 
         fab.setOnClickListener(v -> showAddOptions());
     }
@@ -87,37 +73,36 @@ public class WeightActivity extends AppCompatActivity {
         weightEntries.setAdapter(weightAdapter);
     }
 
-    private void refreshDashboard() {
-        if (userId < 0) {
-            currentWeightView.setText(R.string.current_weight_missing);
-            currentWeightGoalView.setText(R.string.current_goal_missing);
-            weightAdapter.setEntries(new ArrayList<>());
-            return;
-        }
+    private void setupObservers() {
+        weightViewModel.getCurrentWeight().observe(this, weight -> {
+            if (weight == null) {
+                currentWeightView.setText(R.string.current_weight_missing);
+            } else {
+                currentWeightView.setText(getString(
+                        R.string.current_weight_value,
+                        String.format(Locale.US, "%.1f", weight)
+                ));
+            }
+        });
 
-        Float latestWeight = dbHelper.latestWeight(userId);
-        Float latestGoal = dbHelper.getLatestGoal(userId);
+        weightViewModel.getCurrentGoal().observe(this, goal -> {
+            if (goal == null) {
+                currentWeightGoalView.setText(R.string.current_goal_missing);
+            } else {
+                currentWeightGoalView.setText(getString(
+                        R.string.current_goal_value,
+                        String.format(Locale.US, "%.1f", goal)
+                ));
+            }
+        });
 
-        if (latestWeight == null) {
-            currentWeightView.setText(R.string.current_weight_missing);
-        } else {
-            currentWeightView.setText(getString(
-                    R.string.current_weight_value,
-                    String.format(Locale.US, "%.1f", latestWeight)
-            ));
-        }
+        weightViewModel.getRecentWeights().observe(this, entries -> {
+            weightAdapter.setEntries(entries != null ? entries : new ArrayList<>());
+        });
 
-        if (latestGoal == null) {
-            currentWeightGoalView.setText(R.string.current_goal_missing);
-        } else {
-            currentWeightGoalView.setText(getString(
-                    R.string.current_goal_value,
-                    String.format(Locale.US, "%.1f", latestGoal)
-            ));
-        }
-
-        List<WeightTrackerDB.WeightEntry> recentWeights = dbHelper.getRecentWeight(userId, RECENT_WEIGHT_LIMIT);
-        weightAdapter.setEntries(recentWeights);
+        weightViewModel.getStatusMessage().observe(this, message -> {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void showAddOptions() {
@@ -141,13 +126,8 @@ public class WeightActivity extends AppCompatActivity {
         EditText valueInput = view.findViewById(R.id.weightInput);
         Button saveButton = view.findViewById(R.id.btnSaveWeight);
 
-        if (isWeight) {
-            entryTitle.setText(R.string.new_weight);
-            valueInput.setHint(R.string.enter_weight);
-        } else {
-            entryTitle.setText(R.string.new_goal);
-            valueInput.setHint(R.string.enter_goal);
-        }
+        entryTitle.setText(isWeight ? R.string.new_weight : R.string.new_goal);
+        valueInput.setHint(isWeight ? R.string.enter_weight : R.string.enter_goal);
 
         saveButton.setOnClickListener(v -> {
             String rawValue = valueInput.getText().toString().trim();
@@ -156,28 +136,10 @@ public class WeightActivity extends AppCompatActivity {
                 return;
             }
 
-            if (userId < 0) {
-                Toast.makeText(this, R.string.user_not_found, Toast.LENGTH_SHORT).show();
-                return;
-            }
-
             try {
                 float value = Float.parseFloat(rawValue);
-                long insertId = isWeight
-                        ? dbHelper.insertWeight(userId, value)
-                        : dbHelper.insertGoal(userId, value);
-
-                if (insertId == -1) {
-                    Toast.makeText(this, R.string.save_failed, Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(
-                            this,
-                            isWeight ? R.string.weight_saved : R.string.goal_saved,
-                            Toast.LENGTH_SHORT
-                    ).show();
-                    refreshDashboard();
-                    bottomSheet.dismiss();
-                }
+                weightViewModel.addWeightOrGoal(userId, isWeight, value);
+                bottomSheet.dismiss();
             } catch (NumberFormatException e) {
                 Toast.makeText(this, R.string.enter_valid_number, Toast.LENGTH_SHORT).show();
             }
@@ -186,13 +148,35 @@ public class WeightActivity extends AppCompatActivity {
         bottomSheet.show();
     }
 
-    @Override
-    protected void onDestroy() {
-        dbHelper.close();
-        super.onDestroy();
+    public void onButtonClick(View v) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, 0);
+        } else {
+            sendSMS();
+        }
     }
 
-    private static class WeightAdapter extends RecyclerView.Adapter<WeightAdapter.WeightViewHolder> implements com.zybooks.weighttrackingemmanuelrivera.WeightAdapter {
+    private void sendSMS() {
+        EditText phoneText = findViewById(R.id.editTextText2);
+        String phoneNumber = phoneText.getText().toString().trim();
+
+        if (phoneNumber.isEmpty()) {
+            Toast.makeText(this, "Please enter a phone number", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String message = "Goal reached! SMS sent to: " + phoneNumber;
+
+        try {
+            android.telephony.SmsManager smsManager = this.getSystemService(android.telephony.SmsManager.class);
+            smsManager.sendTextMessage(phoneNumber, null, message, null, null);
+            Toast.makeText(this, "SMS Sent!", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private static class WeightAdapter extends RecyclerView.Adapter<WeightAdapter.WeightViewHolder> {
 
         private final List<WeightTrackerDB.WeightEntry> entries = new ArrayList<>();
 
@@ -233,36 +217,4 @@ public class WeightActivity extends AppCompatActivity {
             }
         }
     }
-
-    public void onButtonClick(View v) {
-
-        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, 0);
-        } else {
-            sendSMS();
-        }
-    }
-
-    private void sendSMS() {
-        EditText phoneText = findViewById(R.id.editTextText2);
-        String phoneNumber = phoneText.getText().toString().trim();
-
-        if (phoneNumber.isEmpty()) {
-            Toast.makeText(this, "Please enter a phone number", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String message = "Goal reached! SMS sent to: " + phoneNumber;
-
-        try {
-            SmsManager smsManager = this.getSystemService(SmsManager.class);
-            smsManager.sendTextMessage(phoneNumber, null, message, null, null);
-
-            Toast.makeText(this, "SMS Sent!", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            e.printStackTrace();
-        }
-    }
-
 }
