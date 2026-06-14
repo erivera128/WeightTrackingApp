@@ -179,10 +179,15 @@ public class WeightActivity extends AppCompatActivity {
     private static class WeightAdapter extends RecyclerView.Adapter<WeightAdapter.WeightViewHolder> {
 
         private final List<WeightTrackerDB.WeightEntry> entries = new ArrayList<>();
+        private final List<Float> movingAverages = new ArrayList<>();
 
         public void setEntries(List<WeightTrackerDB.WeightEntry> newEntries) {
             entries.clear();
             entries.addAll(newEntries);
+
+            movingAverages.clear();
+            movingAverages.addAll(WeightMathUtils.calculate7DayMovingAverage(entries));
+
             notifyDataSetChanged();
         }
 
@@ -199,6 +204,13 @@ public class WeightActivity extends AppCompatActivity {
             WeightTrackerDB.WeightEntry entry = entries.get(position);
             holder.weightValue.setText(String.format(Locale.US, "%.1f lbs", entry.getValue()));
             holder.weightDate.setText(entry.getDate());
+
+            if (position < movingAverages.size()) {
+                float avg = movingAverages.get(position);
+                androidx.appcompat.widget.TooltipCompat.setTooltipText(holder.itemView, String.format(Locale.US, "7-Day Trend Avg: %.1f lbs", avg));
+
+                holder.weightDate.setText(String.format(Locale.US, "%s | Trend: %.1f", entry.getDate(), avg));
+            }
         }
 
         @Override
