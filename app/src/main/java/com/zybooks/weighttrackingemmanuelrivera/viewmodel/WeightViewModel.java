@@ -4,12 +4,16 @@ import android.app.Application;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import com.zybooks.weighttrackingemmanuelrivera.data.AppDatabase;
+import com.zybooks.weighttrackingemmanuelrivera.data.WeightDao;
+import com.zybooks.weighttrackingemmanuelrivera.data.WeightRecord;
 import com.zybooks.weighttrackingemmanuelrivera.WeightTrackerDB;
+import java.util.ArrayList;
 import java.util.List;
 
 public class WeightViewModel extends AndroidViewModel {
-    private final WeightTrackerDB dbHelper;
-
+    private final WeightDao weightDao;
+    private final WeightTrackerDB legacyDbHelper;
     private final MutableLiveData<Float> currentWeight = new MutableLiveData<>();
     private final MutableLiveData<Float> currentGoal = new MutableLiveData<>();
     private final MutableLiveData<List<WeightTrackerDB.WeightEntry>> recentWeights = new MutableLiveData<>();
@@ -17,7 +21,8 @@ public class WeightViewModel extends AndroidViewModel {
 
     public WeightViewModel(Application application) {
         super(application);
-        dbHelper = new WeightTrackerDB(application);
+        weightDao = AppDatabase.getDatabase(application).weightDao();
+        legacyDbHelper = new WeightTrackerDB(application);
     }
 
     public LiveData<Float> getCurrentWeight() { return currentWeight; }
@@ -28,9 +33,29 @@ public class WeightViewModel extends AndroidViewModel {
     public void loadDashboardData(long userId) {
         if (userId < 0) return;
 
-        currentWeight.setValue(dbHelper.latestWeight(userId));
-        currentGoal.setValue(dbHelper.getLatestGoal(userId));
-        recentWeights.setValue(dbHelper.getRecentWeight(userId, 10));
+        try {
+            float latest = weightDao.getLatestWeight(userId);
+            currentWeight.setValue(latest);
+        } catch (Exception e) {
+            currentWeight.setValue(null);
+        }
+
+
+        currentGoal.setValue(legacyDbHelper.getLatestGoal(userId));
+
+        List<WeightRecord> roomRecords = weightDao.getRecentWeights(userId);
+        List<WeightTrackerDB.WeightEntry> mappedEntries = new ArrayList<>();
+
+        for (WeightRecord record : roomRecords) {
+            java.util.Date date = new java.util.Date(record.timestamp);
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("MM/dd/yyyy", java.util.Locale.US);
+
+            mappedEntries.add(new WeightTrackerDB.WeightEntry(
+                    record.weight,
+                    sdf.format(date)
+            ));
+        }
+        recentWeights.setValue(mappedEntries);
     }
 
     public void addWeightOrGoal(long userId, boolean isWeight, float value) {
@@ -39,21 +64,23 @@ public class WeightViewModel extends AndroidViewModel {
             return;
         }
 
-        long insertId = isWeight
-                ? dbHelper.insertWeight(userId, value)
-                : dbHelper.insertGoal(userId, value);
-
-        if (insertId == -1) {
-            statusMessage.setValue("Save failed");
+        if (isWeight) {
+            weightDao.insertWeight(new WeightRecord(value, userId));
+            statusMessage.setValue("Weight saved to Room DB");
         } else {
-            statusMessage.setValue(isWeight ? "Weight saved" : "Goal saved");
-            loadDashboardData(userId);
+            long insertId = legacyDbHelper.insertGoal(userId, value);
+            if (insertId == -1) {
+                statusMessage.setValue("Save failed");
+            } else {
+                statusMessage.setValue("Goal saved");
+            }
         }
+        loadDashboardData(userId);
     }
 
     @Override
     protected void onCleared() {
-        dbHelper.close();
+        legacyDbHelper.close();
         super.onCleared();
     }
 }
