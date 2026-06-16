@@ -63,13 +63,18 @@ public class WeightTrackerDB extends SQLiteOpenHelper {
         return db.insert("users", null, values);
     }
 
-    public boolean verifyUser(String username, String passwordHash) {
+    public boolean verifyUser(String username, String passwordPlaintext) {
         SQLiteDatabase db = getReadableDatabase();
 
         try (Cursor cursor = db.rawQuery(
-                "SELECT userId FROM users WHERE username = ? AND password = ?",
-                new String[]{username, passwordHash})) {
-            return cursor.moveToFirst();
+                "SELECT password FROM users WHERE username = ?",
+                new String[]{username})) {
+
+            if (cursor.moveToFirst()) {
+                String storedHash = cursor.getString(0);
+                return SecurityUtils.verifyPassword(passwordPlaintext, storedHash);
+            }
+            return false;
         }
     }
 

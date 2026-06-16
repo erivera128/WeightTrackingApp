@@ -41,7 +41,9 @@ public class AuthViewModel extends AndroidViewModel {
             return;
         }
 
-        long userId = dbHelper.createUser(username, password);
+        String securePasswordHash = com.zybooks.weighttrackingemmanuelrivera.SecurityUtils.hashPassword(password);
+        long userId = dbHelper.createUser(username, securePasswordHash);
+
         if (userId == -1) {
             errorState.setValue("Username already exists");
         } else {
